@@ -35,7 +35,7 @@ impl<T> Pat<T> {
     fn call_parse_func<I>(&mut self, parse_obj: &mut T, args: &mut I) -> Result<(), String> where I: Iterator<Item = String> {
         match self.visited {
             true => {
-                Err(format!("[DummyCliParser Error]: argument pattern \"{}\" is duplicated.",  &self.internal.pat_str))
+                Err(format!("argument pattern \"{}\" is duplicated.",  &self.internal.pat_str))
             },
             false => {
                 self.visited = true;
@@ -43,7 +43,7 @@ impl<T> Pat<T> {
                     true => {
                         args.next().map_or_else(
                             || {
-                                Err(format!("[DummyCliParser Error]: no argument for pattern \"{}\".",&self.internal.pat_str))
+                                Err(format!("no argument for pattern \"{}\".",&self.internal.pat_str))
                             }, 
                             |next_arg| {
                                 (self.internal.parse_func)(next_arg, parse_obj)
@@ -106,7 +106,7 @@ impl<T> CliParser<T> {
             Ok(())
         }
         else {
-            Err(format!("[DummyCliParser Error]: argument pattern \"{}\" is already registered.", &pat_str))
+            Err(format!("[CliParser Error]: argument pattern \"{}\" is already registered.", &pat_str))
         }        
     }
 
@@ -116,7 +116,10 @@ impl<T> CliParser<T> {
             match search_for_matched_pattern(&mut self.pats, &arg_str) {
                 Some(pat) => {
                     match pat.call_parse_func(&mut self.parse_obj, &mut args) {
-                        Err(err_msg) => return Err(err_msg),
+                        Err(err_msg) => {
+                            let prefix = "[CliParser Error]: ".to_string();
+                            return Err(prefix + &err_msg)
+                        },
                         _ => {
                             match &pat.internal.pat_type {
                                 PatternType::WithArg | PatternType::WithoutArg => cnt += 1,
@@ -126,7 +129,7 @@ impl<T> CliParser<T> {
                     };
                 },
                 None => {                    
-                    return Err(format!("[DummyCliParser Error]: invalid argument pattern \"{}\"", arg_str));
+                    return Err(format!("[CliParser Error]: invalid argument pattern \"{}\"", arg_str));
                 }
             };
         };
@@ -136,7 +139,7 @@ impl<T> CliParser<T> {
         else {
             return Err(format!(
                 concat!(
-                    r#"[DummyCliParser Error]: the number of compulsory argument patterns is {}, "#,
+                    r#"[CliParser Error]: the number of compulsory argument patterns is {}, "#,
                     r#"but only find {} in the argument list."#), 
                 self.compulsory_cnt, cnt
             ));
@@ -214,7 +217,7 @@ mod tests {
         });
 
         cli_parser.register_pattern("-pat1", PatternType::WithArg, "pat1-description", 
-            |s: String, parse_obj: &mut Tester|{
+            |s, parse_obj|{
                 s.parse::<i32>().map(|int_arg|{
                     parse_obj.i = int_arg;
                 }).map_err(|_| {
@@ -224,7 +227,7 @@ mod tests {
         ).unwrap();
 
         cli_parser.register_pattern("-pat2", PatternType::WithoutArg, "pat2-description", 
-            |s: String, parse_obj: &mut Tester|{
+            |s, parse_obj|{
                 assert_eq!(s, String::new());
                 parse_obj.j = 1024;
                 Ok(())
@@ -232,7 +235,7 @@ mod tests {
         ).unwrap();
 
         cli_parser.register_pattern("-pat3", PatternType::OptionalWithArg, "pat3-description", 
-            |s: String, parse_obj: &mut Tester|{
+            |s, parse_obj|{
                 s.parse::<i32>().map(|int_arg|{
                     parse_obj.k = int_arg;
                 }).map_err(|_| {
@@ -242,7 +245,7 @@ mod tests {
         ).unwrap();
         
         cli_parser.register_pattern("-pat4", PatternType::OptionalWithoutArg, "pat2-description", 
-            |s: String, parse_obj: &mut Tester|{
+            |s, parse_obj|{
                 assert_eq!(s, String::new());
                 parse_obj.l = 23;
                 Ok(())
@@ -275,7 +278,7 @@ mod tests {
         });
 
         cli_parser.register_pattern("-pat1", PatternType::WithArg, "pat1-description", 
-            |s: String, parse_obj: &mut Tester|{
+            |s, parse_obj|{
                 s.parse::<i32>().map(|int_arg|{
                     parse_obj.i = int_arg;
                 }).map_err(|_| {
@@ -285,7 +288,7 @@ mod tests {
         ).unwrap();
 
         cli_parser.register_pattern("-pat2", PatternType::WithoutArg, "pat2-description", 
-            |s: String, parse_obj: &mut Tester|{
+            |s, parse_obj|{
                 assert_eq!(s, String::new());
                 parse_obj.j = 1024;
                 Ok(())
@@ -293,7 +296,7 @@ mod tests {
         ).unwrap();
 
         cli_parser.register_pattern("-pat3", PatternType::OptionalWithArg, "pat3-description", 
-            |s: String, parse_obj: &mut Tester|{
+            |s, parse_obj|{
                 s.parse::<i32>().map(|int_arg|{
                     parse_obj.k = int_arg;
                 }).map_err(|_| {
@@ -303,7 +306,7 @@ mod tests {
         ).unwrap();
         
         cli_parser.register_pattern("-pat4", PatternType::OptionalWithoutArg, "pat2-description", 
-            |s: String, parse_obj: &mut Tester|{
+            |s, parse_obj|{
                 assert_eq!(s, String::new());
                 parse_obj.l = 23;
                 Ok(())
@@ -335,7 +338,7 @@ mod tests {
         });
 
         cli_parser.register_pattern("-pat1", PatternType::WithArg, "pat1-description", 
-            |s: String, parse_obj: &mut Tester|{
+            |s, parse_obj|{
                 s.parse::<i32>().map(|int_arg|{
                     parse_obj.i = int_arg;
                 }).map_err(|_| {
@@ -345,7 +348,7 @@ mod tests {
         ).unwrap();
 
         cli_parser.register_pattern("-pat2", PatternType::WithoutArg, "pat2-description", 
-            |s: String, parse_obj: &mut Tester|{
+            |s, parse_obj|{
                 assert_eq!(s, String::new());
                 parse_obj.j = 1024;
                 Ok(())
@@ -353,7 +356,7 @@ mod tests {
         ).unwrap();
 
         cli_parser.register_pattern("-pat3", PatternType::OptionalWithArg, "pat3-description", 
-            |s: String, parse_obj: &mut Tester|{
+            |s, parse_obj|{
                 s.parse::<i32>().map(|int_arg|{
                     parse_obj.k = int_arg;
                 }).map_err(|_| {
@@ -363,7 +366,7 @@ mod tests {
         ).unwrap();
         
         cli_parser.register_pattern("-pat4", PatternType::OptionalWithoutArg, "pat2-description", 
-            |s: String, parse_obj: &mut Tester|{
+            |s, parse_obj|{
                 assert_eq!(s, String::new());
                 parse_obj.l = 23;
                 Ok(())

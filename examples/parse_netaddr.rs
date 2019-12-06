@@ -1,6 +1,6 @@
 extern crate dummy_cli_parser;
 
-use std::net::{IpAddr, Ipv4Addr};
+use std::net::{IpAddr};
 use dummy_cli_parser::{CliParser, PatternType};
 
 fn main() {
@@ -26,7 +26,7 @@ fn main() {
 
     parser.register_pattern("-p", PatternType::OptionalWithArg, "port", 
         |arg_str, parse_obj| {
-            let mut parse_res = arg_str.parse::<i32>();
+            let parse_res = arg_str.parse::<i32>();
             if parse_res.is_ok() {
                 let port = parse_res.unwrap();
                 if port >=0 && port <= 65535 {
